@@ -1,7 +1,7 @@
 import * as p5 from 'p5';
 import {generateTraits} from "./traits";
 
-let devMode = false;
+let devMode = true;
 if(devMode){
     /**
      * Enable new hashes on click during development.
@@ -21,43 +21,46 @@ if(devMode){
 
 let s = (sk) => {
     const {traits, attributes} = generateTraits(createPrng());
+
     setProperties(attributes, traits);
+    let sCol;
 
     sk.setup = () => {
         const dimensions = getDimensions();
         sk.createCanvas(...dimensions)
         sk.colorMode(sk.HSL)
+        sk.noLoop();
     }
 
     sk.draw = () => {
-        const bg = sk.color(traits.bgHue, traits.bgSaturation, traits.bgLightness);
-        sk.background(bg)
-
-        const border = Math.round(sk.width * 0.15);
-        const skew = border / traits.layers;
-
-        for (let i = 0; i < traits.layers; i++) {
-            const prng = createPrng()
-            sk.push()
-            sk.translate((i - Math.floor(traits.layers / 2)) * skew, 0)
-
-            const fg = sk.color(traits.fgHue, traits.fgSaturation * (i / traits.layers), traits.fgLightness * (i / traits.layers));
-            sk.fill(fg)
-            sk.noStroke()
-            sk.beginShape()
-
-            for (let i = 0; i < traits.numLines; i++) {
-                const x = prng.randomInt(border, sk.width - border)
-                const y = prng.randomInt(border, sk.height - border)
-                sk.curveVertex(x, y)
+        sk.background(255)
+        let g = 50;
+        const prng = createPrng();
+        for (let x = 0; x <= sk.width ; x += g) {
+          for (let y = 0; y <= sk.width; y += g) {
+            sk.push();
+            sk.translate(x, y);
+            let j = g / Math.floor(prng.randomInt(1, 20)) ;
+            for (let sx = -g + j ; sx <= g - j ; sx += j) {
+              for (let sy = -g+ j ; sy <= g - j ; sy += j) {
+                sCol = (prng.randomInt(0, 2)===0) ? traits.aCol : ((prng.randomInt(0, 2)===2) ? traits.bCol : traits.cCol);
+                sk.stroke(sCol.hue, sCol.saturation, sCol.lightness);
+                sk.strokeWeight(prng.randomInt(1, j));
+                sk.point(sx + prng.randomInt(-g, g), sy + prng.randomInt(-g, g));
+              }
             }
-
-            sk.endShape()
-            sk.pop()
+            sk.pop();
+            sk.push();
+            sk.strokeWeight(15);
+            sk.stroke(0);
+            sk.line(0, 0, sk.width, 0);
+            sk.line(0, 0, 0, sk.height);
+            sk.line(sk.width, 0, sk.width, sk.height);
+            sk.line(0, sk.height, sk.width, sk.height);
+            sk.pop();
+          }
         }
-
         setPreviewReady()
-        sk.noLoop()
     }
     const getDimensions = () => {
         let desiredHeight = sk.windowHeight
@@ -72,11 +75,14 @@ let s = (sk) => {
         if (!isPWPreview()) {
             const dimensions = getDimensions();
             sk.resizeCanvas(...dimensions);
-            // redraw at new dimensions
             sk.loop()
         }
     }
+
 }
+
+
+
 
 export const createSketch = () => {
     return new p5(s, document.getElementById('root'));
